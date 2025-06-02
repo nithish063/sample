@@ -20,6 +20,12 @@ pipeline {
             }
         }
 
+        stage('Test') {
+            steps {
+                bat 'docker run --rm %IMAGE_NAME% pytest'
+            }
+        }
+
         stage('Run Docker Container') {
             steps {
                 bat 'docker run -d -p %PORT%:5000 --name %CONTAINER_NAME% %IMAGE_NAME%'
