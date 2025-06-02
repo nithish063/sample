@@ -3,39 +3,40 @@ pipeline {
 
     environment {
         IMAGE_NAME = 'flask-hello-world'
-        CONTAINER_NAME = 'flask-container'
-        PORT = '5000'
     }
 
     stages {
-        stage('Clean Old Container') {
+        stage('Checkout') {
             steps {
-                bat 'docker rm -f %CONTAINER_NAME% || echo "No existing container to remove."'
+                checkout scm
+            }
+        }
+        
+        stage('Build & Test') {
+            steps {
+                bat """
+                docker build -t %IMAGE_NAME% -f Dockerfile.test .
+                docker run --rm %IMAGE_NAME% pytest
+                """
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build Image') {
             steps {
-                bat 'docker build -t %IMAGE_NAME% .'
-            }
-        }
-
-        stage('Test') {
-            steps {
-                bat 'docker run --rm %IMAGE_NAME% pytest'
-            }
-        }
-
-        stage('Run Docker Container') {
-            steps {
-                bat 'docker run -d -p %PORT%:5000 --name %CONTAINER_NAME% %IMAGE_NAME%'
+                bat "docker build -t %IMAGE_NAME% ."
             }
         }
     }
 
     post {
+        always {
+            bat "docker system prune -f"
+        }
+        success {
+            echo 'Build and tests successful!'
+        }
         failure {
-            echo "❌ Build or deployment failed. Check logs."
+            echo 'Build or tests failed.'
         }
     }
 }
